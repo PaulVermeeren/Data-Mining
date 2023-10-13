@@ -1,19 +1,36 @@
+'''
+This file contains code capable of performing classification on the Eclipse bug data set. 
+The classification methods consist of a single decision tree; a bagging of trees; and a random forest.
+The algorithms mainly rely on the following four functions: tree_grow(), tree_pred(), tree_grow_b(), and 
+tree_pred_b(). Additional helper functions and classes are present in this code file as well. 
+
+Contributors:
+- Paul Vermeeren (6794289)
+- Raoul 
+- Riemer Dijkstra (6816592)
+'''
+
+# Dependencies
 import random
 from collections import Counter
 from statistics import mode
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+from scipy.stats import chi2_contingency
 
+
+# Class instance for handling tree components
 class Node:
-    def __init__(self, feature=None, threshold=None, value=None, left=None, right=None):
-        self.feature = feature # feature index
-        self.threshold = threshold # feature threshold
-        self.value = value # feature index majority
-        self.left = left # child nodes
-        self.right = right
+    def __init__(self, feature: int = None, threshold: float = None, value: int = None, left: 'Node' = None, right: 'Node' = None):
+        self.feature = feature       # feature index
+        self.threshold = threshold   # feature threshold
+        self.value = value           # feature index majority
+        self.left = left             # left child node
+        self.right = right           # right child node
 
-def tree_grow(x, y, nmin, minleaf, nfeat):
+        
+def tree_grow(x: list, y: list, nmin: int, minleaf: int, nfeat: int) -> Node:
     """
     Grow a decision tree based on the input data
 
@@ -27,15 +44,19 @@ def tree_grow(x, y, nmin, minleaf, nfeat):
     Returns:
         Node: Root node of the decision tree
     """
-
-    if pure(y): # if pure return majority class
+    # if pure return majority class
+    if pure(y):
+        return Node(value=mode(y))
+    
+    # if fewer cases than nmin majority class
+    if len(y) < nmin:
         return Node(value=mode(y))
 
-    if len(y) < nmin: # if fewer cases than nmin majority class
-        return Node(value=mode(y))
-
-    feature, threshold, leftx, rightx, lefty, righty = split(x, y, minleaf, nfeat) # GINI search
-    if feature == None: # no split so node becomes leaf
+    # GINI search
+    feature, threshold, leftx, rightx, lefty, righty = split(x, y, minleaf, nfeat) 
+    
+    # No split so node becomes leaf
+    if feature is None: 
         return Node(value=mode(y))
 
     left_child = tree_grow(leftx, lefty, nmin, minleaf, nfeat)
@@ -46,10 +67,11 @@ def tree_grow(x, y, nmin, minleaf, nfeat):
     parent.threshold = threshold 
     parent.left = left_child
     parent.right = right_child
+    
     return parent
 
         
-def tree_pred(x, tr):
+def tree_pred(x: list, tr: 'Node') -> list:
     """
     Make predictions using a decision tree
 
@@ -74,7 +96,7 @@ def tree_pred(x, tr):
     return predictions
 
 
-def tree_grow_b(x, y, nmin, minleaf, nfeat, m):
+def tree_grow_b(x: list, y: list, nmin: int, minleaf: int, nfeat: int, m: int) -> list:
     """
     Grow multiple decision trees using bootstrapped samples
 
@@ -100,13 +122,13 @@ def tree_grow_b(x, y, nmin, minleaf, nfeat, m):
     return trees
 
 
-def tree_pred_b(trees, x):
+def tree_pred_b(x: list, trees: list) -> list:
     """
     Make predictions using multiple decision trees
 
     Args:
-        trees (list): List of root nodes of decision trees
         x (list of lists): List of data points to make predictions on
+        trees (list): List of root nodes of decision trees
 
     Returns:
         list: Predicted labels for the input data points
@@ -122,7 +144,8 @@ def tree_pred_b(trees, x):
     new_y = [mode(a) for a in new_y]
     return new_y
 
-def pure(y):
+
+def pure(y: list) -> bool:
     """
     Check if all elements in the input list are the same
 
@@ -132,12 +155,14 @@ def pure(y):
     Returns:
         bool: True if all elements are the same, otherwise False.
     """
-    if len(set(y)) == 1: # if all the same classes in remaining 
+    # If all the same classes in remaining list
+    if len(set(y)) == 1: 
         return True
     else:
         return False
     
-def gini(y):
+    
+def gini(y: list) -> float:
     """
     Calculate the Gini impurity for a given list of labels
 
@@ -153,7 +178,8 @@ def gini(y):
         p += (count / len(y))**2
     return 1 - p
 
-def split(x, y, minleaf, nfeat):
+
+def split(x: list, y: list, minleaf: int, nfeat: int) -> tuple:
     """
     Find the best feature and threshold for splitting data points
 
@@ -168,7 +194,8 @@ def split(x, y, minleaf, nfeat):
                left child data points, right child data points,
                left child labels, right child labels.
     """
-    features = random.sample(range(len(x[0])), nfeat) # random features selecting
+    # Random features selecting
+    features = random.sample(range(len(x[0])), nfeat) 
     
     best_gini = 1
     best_feature = None
@@ -182,21 +209,25 @@ def split(x, y, minleaf, nfeat):
             left_indices = []
             right_indices = []
             right_values = []
-            for i, a in enumerate(x): # indices lower than threshold
+            # Indices lower than threshold
+            for i, a in enumerate(x): 
                 if a[feature_index] <= values[t]:
                     left_indices.append(i)
                 else:
                     right_indices.append(i)
                     right_values.append(a[feature_index])
 
-            if len(left_indices) >= minleaf and len(right_indices) >= minleaf: # minleaf criteria
+            # Minleaf criteria
+            if len(left_indices) >= minleaf and len(right_indices) >= minleaf: 
                 left_gini = gini([y[i] for i in left_indices])
                 right_gini = gini([y[i] for i in right_indices])
 
-                weighted_gini = (len(left_indices) / len(y)) * left_gini + (len(right_indices) / len(y)) * right_gini # weighted based on size
+                # Weighted gini index based on size
+                weighted_gini = (len(left_indices) / len(y)) * left_gini + (len(right_indices) / len(y)) * right_gini 
 
                 if weighted_gini < best_gini:
-                    if weighted_gini == best_gini and random() == 0: ## if gini same and random == 0, skip if random == 1 replace
+                    # If gini same and random == 0, skip if random == 1 replace
+                    if weighted_gini == best_gini and random() == 0: 
                         continue
                     best_gini = weighted_gini
                     best_feature = feature_index
@@ -205,7 +236,7 @@ def split(x, y, minleaf, nfeat):
                     best_left_indices = left_indices
                     best_right_indices = right_indices
 
-    # from indices to rows
+    # From indices to rows
     best_left_x = [a for i, a in enumerate(x) if i in best_left_indices]
     best_right_x = [a for i, a in enumerate(x) if i in best_right_indices]
     best_left_y = [a for i, a in enumerate(y) if i in best_left_indices]
