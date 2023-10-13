@@ -6,7 +6,7 @@ tree_pred_b(). Additional helper functions and classes are present in this code 
 
 Contributors:
 - Paul Vermeeren (6794289)
-- Raoul 
+- Raoul Beernaert (3972755)
 - Riemer Dijkstra (6816592)
 '''
 
