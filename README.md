@@ -1,4 +1,4 @@
-# Data-Mining: Assignment 1
+# Data Mining: Assignment 1
 
 This zip file contains two files: 
 - classification.py
