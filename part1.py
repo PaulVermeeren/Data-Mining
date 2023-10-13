@@ -22,7 +22,7 @@ from scipy.stats import chi2_contingency
 
 # Class instance for handling tree components
 class Node:
-    def __init__(self, feature: int = None, threshold: float = None, value: int = None, left: Node = None, right: Node = None):
+    def __init__(self, feature: int = None, threshold: float = None, value: int = None, left: 'Node' = None, right: 'Node' = None):
         self.feature = feature       # feature index
         self.threshold = threshold   # feature threshold
         self.value = value           # feature index majority
@@ -71,7 +71,7 @@ def tree_grow(x: list, y: list, nmin: int, minleaf: int, nfeat: int) -> Node:
     return parent
 
         
-def tree_pred(x: list, tr: Node) -> list:
+def tree_pred(x: list, tr: 'Node') -> list:
     """
     Make predictions using a decision tree
 
@@ -88,9 +88,9 @@ def tree_pred(x: list, tr: Node) -> list:
         current_node = tr
         while current_node.value == None:
             if x[i][current_node.feature] <= current_node.threshold:
-                current_node = current_node.left
-            else:
                 current_node = current_node.right
+            else:
+                current_node = current_node.left
         predictions.append(current_node.value)
     
     return predictions
@@ -208,14 +208,14 @@ def split(x: list, y: list, minleaf: int, nfeat: int) -> tuple:
         for t in range(len(values)):
             left_indices = []
             right_indices = []
-            right_values = []
+            left_values = []
             # Indices lower than threshold
             for i, a in enumerate(x): 
                 if a[feature_index] <= values[t]:
-                    left_indices.append(i)
-                else:
                     right_indices.append(i)
-                    right_values.append(a[feature_index])
+                else:
+                    left_indices.append(i)
+                    left_values.append(a[feature_index])
 
             # Minleaf criteria
             if len(left_indices) >= minleaf and len(right_indices) >= minleaf: 
@@ -231,8 +231,8 @@ def split(x: list, y: list, minleaf: int, nfeat: int) -> tuple:
                         continue
                     best_gini = weighted_gini
                     best_feature = feature_index
-                    right_values.sort()
-                    best_threshold = (values[t] + right_values[0]) / 2
+                    left_values.sort()
+                    best_threshold = (values[t] + left_values[0]) / 2
                     best_left_indices = left_indices
                     best_right_indices = right_indices
 
