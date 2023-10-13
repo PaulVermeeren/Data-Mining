@@ -22,7 +22,7 @@ from scipy.stats import chi2_contingency
 
 # Class instance for handling tree components
 class Node:
-    def __init__(self, feature: int = None, threshold: float = None, value: int = None, left: 'Node' = None, right: 'Node' = None):
+    def __init__(self, feature: int = None, threshold: float = None, value: int = None, left: Node = None, right: Node = None):
         self.feature = feature       # feature index
         self.threshold = threshold   # feature threshold
         self.value = value           # feature index majority
@@ -71,7 +71,7 @@ def tree_grow(x: list, y: list, nmin: int, minleaf: int, nfeat: int) -> Node:
     return parent
 
         
-def tree_pred(x: list, tr: 'Node') -> list:
+def tree_pred(x: list, tr: Node) -> list:
     """
     Make predictions using a decision tree
 
